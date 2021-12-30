@@ -15,7 +15,7 @@
 <body>
     <script>
         var users = [];
-        var selected_token;
+        var selected_user,selected_token;
 
         var server_key,serverkey_dev,serverkey_onuse;
         var db, db_onuse, db_dev;
@@ -106,7 +106,7 @@
 
         function send_push()
         {
-            token = selcted_user.FCMToken;
+            token = selected_user.FCMToken;
 //             token = selected_token;
 
             $.ajax({
@@ -123,7 +123,7 @@
                         to: token,
                         priority:"high",
                         notification : {
-                            title: "로이전용 웹앱에서"+selcted_user.UserName+"님 에게 메시지를 보냅니다",
+                            title: "로이전용 웹앱에서"+selected_user.UserName+"님 에게 메시지를 보냅니다",
                             body: "상세한 내용정보입니다."
                         }
                     }),
