@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로이웹앱 - send push. </title>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-storage.js"></script>
+</head>
+
+<body>
+    <script>
+        var users = [];
+        var selected_token;
+
+        var server_key,serverkey_dev,serverkey_onuse;
+        var db, db_onuse, db_dev;
+
+            function FB_intialize()
+            {
+                var firebaseConfig = {authDomain: "roit-smartpmis.firebaseapp.com",projectId: "roit-smartpmis",storageBucket: 'roit-smartpmis.appspot.com'};
+                const app_onuse = firebase.initializeApp(firebaseConfig);
+                firebase.firestore().settings({ experimentalForceLongPolling: true });
+                db_onuse = app_onuse.firestore();
+                db_onuse.settings({ timestampsInSnapshot: true, merge: true });
+                serverkey_onuse = "key="+"AAAAUX-4lhU:APA91bGMdI3sBdNerhBK9gnS7B7lZrTqydTY7UDSnwwUdDhTKUFataqCMk7SstLRcg1PS3lNQ797-djy6g9egZ2_RJbzLV-fdvMsSEDZtbyoBtdmxE75UME5fHlFfKcrwBildAvYrGpy";
+                const storage_onuse = firebase.storage();
+
+                var firebaseConfig_Dev = {authDomain: "roit-smartpmis-dev.firebaseapp.com",projectId: "roit-smartpmis-dev",storageBucket: 'roit-smartpmis-dev.appspot.com'};
+                const app_dev = firebase.initializeApp(firebaseConfig_Dev,"develop");
+                db_dev = app_dev.firestore();
+                db_dev.settings({ timestampsInSnapshot: true, merge: true });
+                serverkey_dev = "key="+"AAAAsJ8Jcd0:APA91bEv5n_wt_dgVBxDVAKv52CyBrsFhdMoX61yHsNVyRqlm0UMtrQLLRVTnTNvr9qhSY_hJfo-5kvaEG9hIgHULsBKhqp4SvSaLoEoUL-s_lRD-2jPEVT6CqmUfiaGVxyjMcpm7ggA";
+                const storage_dev = firebase.storage();
+
+            }
+            FB_intialize();
+            function isDev_selected(isDev)
+            {
+                if(isDev)
+                {
+                    db = db_dev;
+                    server_key = serverkey_dev;
+                }
+                else
+                {
+                    db = db_onuse;
+                    server_key=serverkey_onuse;
+                }
+                Get_DB();
+            }
+
+    </script>
+
+    <script>
+
+        
+        function Get_DB() {
+          db.collection('users').get().then((querySnapshot) => {
+            $('#users_select').empty();
+            users=[];
+            querySnapshot.forEach((doc) => {
+                users.push(doc.data()); 
+                users[users.length-1].id=doc.id;
+                console.log(users[users.length-1]);
+                $('#users_select').append('<option value='+(users.length-1)+'>'+users[users.length-1].UserName+'</option>')
+            })
+            user_select_change(0)
+          });
+        }
+
+        function user_select_change(i)
+        {
+            selected_token = users[i].FCMToken;
+            $('#selected_user').text(selected_token.substring(0,15)+'...');
+        }
+
+    </script>
+    <div>
+        <div>
+            <input type="radio" id="develop" name="isDev" value="develop" checked>
+                <label for="develop">develop</label>
+            </input>
+            <input type="radio" id="onuse" name="isDev" value="onuse">
+                <label for="onuse">onuse</label>
+            </input>
+        </div>
+
+        <select id="users_select" onchange="user_select_change(this.value)"></select>
+        <label id="selected_user"></label>
+
+        <button onclick="send_push()"> 푸시 보내기 </button>
+    </div>
+    <script>
+
+        $("input[name='isDev']:radio").change(function () {
+            isDev_selected(this.value=='develop'? true: false);
+        });
+        isDev_selected(true);//dev가 초기설정. 
+
+
+        function send_push()
+        {
+            token = selected_token;
+
+            $.ajax({
+                    type : 'POST',
+                    url: 'https://fcm.googleapis.com/fcm/send',
+                    beforeSend:function(xhr)
+                    {
+                        xhr.setRequestHeader("Authorization",server_key);
+                        xhr.setRequestHeader("Content-Type","application/json");
+                        xhr.setRequestHeader("Cache-control","no-cache");
+                    },
+                    dataType : 'json',
+                    data : JSON.stringify({
+                        to: token,
+                        priority:"high",
+                        notification : {
+                            title: "로이전용 웹앱 Push",
+                            body: "www.nate.com"
+                        }
+                    }),
+                    success : function(result) {console.log(result);},
+                    error: function(request, status, error) {console.log(request);}
+                });
+        }
+        
+        
+        //
+        //
+        // notification:{}//notification대신 data에 넣으면 앱의 onMessageReceived를 타게 된다. ,
+        // ios에서는 notification만 탄다.
+        
+        
+        // "http에서 날아왔음. ",url:
+        // noti가 아닌 data를 쓰라는 내용. 그래야 backgroud 일때도 전송됨. 
+    </script>
+</body>
+</html>
